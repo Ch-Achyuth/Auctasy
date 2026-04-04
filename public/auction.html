@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auctasy - Live Auction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        
+        <div class="team-budget">
+            <span>Group: <span id="display-group" style="color:var(--primary)">...</span></span>
+            <span id="display-budget">Budget: $1000</span>
+        </div>
+
+        <!-- Lobby State -->
+        <div id="lobby-view" class="hidden">
+            <h2 style="margin-top:0;">Waiting for Players...</h2>
+            <h3 style="color:var(--warning)" id="lobby-count">0 / 0 Joined</h3>
+            <p style="margin-bottom: 0.5rem">Players in room:</p>
+            <ul id="lobby-players" style="list-style: none; padding: 0; text-align: left; background: var(--bg); padding: 1rem; border-radius: 6px;">
+                <!-- Populated by JS -->
+            </ul>
+        </div>
+
+        <!-- Active Auction State -->
+        <div id="auction-view" class="hidden">
+            <div id="auction-block">
+                <p>Loading player...</p>
+            </div>
+
+            <div class="ai-module" id="ai-agent">
+                <h3>🤖 AI Agent</h3>
+                <p id="agent-rec">Analyzing team needs...</p>
+            </div>
+
+            <div class="ai-module" style="border-left-color: var(--warning); background: rgba(245, 158, 11, 0.1);" id="ai-rules">
+                <h3 style="color: var(--warning);">⚖️ Rule-Based Assistant</h3>
+                <p id="rule-tip">Analyzing bid value...</p>
+            </div>
+
+            <div class="bid-controls">
+                <input type="number" id="bid-input" placeholder="Enter bid amount">
+                <button onclick="placeBid()">Place Bid</button>
+            </div>
+            
+            <br>
+            <button style="background: var(--danger); margin-top:20px;" onclick="sellPlayer()">Host: Sell & Next Player</button>
+        </div>
+
+        <!-- Finished State -->
+        <div id="finished-view" class="hidden">
+            <h2>Auction Complete!</h2>
+            <button style="background: var(--success); margin-top: 10px;" onclick="goToResults()">Simulate Match Results!</button>
+        </div>
+        
+    </div>
+    <script src="script.js"></script>
+    <script>
+        const u = sessionStorage.getItem('username');
+        const g = sessionStorage.getItem('groupName');
+        if(!u || !g) window.location.href = '/';
+        
+        document.getElementById('display-group').innerText = g;
+        
+        setInterval(pollAuctionState, 2000); 
+        pollAuctionState();
+    </script>
+</body>
+</html>

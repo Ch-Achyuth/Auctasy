@@ -1,0 +1,92 @@
+[
+  {
+    "id": "1",
+    "name": "Virat Kohli",
+    "role": "Batsman",
+    "basePrice": 200,
+    "stats": { "matches": 279, "runs": 13000, "average": 57.3 },
+    "team": "IND",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Virat_Kohli_during_the_India_vs_Japan_match_of_the_2015_Cricket_World_Cup_%28cropped%29.jpg"
+  },
+  {
+    "id": "2",
+    "name": "Jasprit Bumrah",
+    "role": "Bowler",
+    "basePrice": 180,
+    "stats": { "matches": 89, "wickets": 149, "economy": 4.5 },
+    "team": "IND",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Jasprit_Bumrah_in_2019.jpg/800px-Jasprit_Bumrah_in_2019.jpg"
+  },
+  {
+    "id": "3",
+    "name": "Ben Stokes",
+    "role": "All-Rounder",
+    "basePrice": 220,
+    "stats": { "matches": 110, "runs": 3200, "wickets": 100, "average": 40.5 },
+    "team": "ENG",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Ben_Stokes_2019.jpg/800px-Ben_Stokes_2019.jpg"
+  },
+  {
+    "id": "4",
+    "name": "Mitchell Starc",
+    "role": "Bowler",
+    "basePrice": 170,
+    "stats": { "matches": 115, "wickets": 230, "economy": 4.9 },
+    "team": "AUS",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Mitchell_Starc_2015_World_Cup.jpg/800px-Mitchell_Starc_2015_World_Cup.jpg"
+  },
+  {
+    "id": "5",
+    "name": "Babar Azam",
+    "role": "Batsman",
+    "basePrice": 190,
+    "stats": { "matches": 108, "runs": 5400, "average": 56.7 },
+    "team": "PAK",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Babar_Azam_in_2019.jpg/800px-Babar_Azam_in_2019.jpg"
+  },
+  {
+    "id": "6",
+    "name": "Rashid Khan",
+    "role": "Bowler",
+    "basePrice": 160,
+    "stats": { "matches": 94, "wickets": 172, "economy": 4.2 },
+    "team": "AFG",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Rashid_Khan_Bowling.jpg/800px-Rashid_Khan_Bowling.jpg"
+  },
+  {
+    "id": "7",
+    "name": "Hardik Pandya",
+    "role": "All-Rounder",
+    "basePrice": 150,
+    "stats": { "matches": 82, "runs": 1700, "wickets": 79, "average": 33.5 },
+    "team": "IND",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Hardik_Pandya_in_2019.jpg/800px-Hardik_Pandya_in_2019.jpg"
+  },
+  {
+    "id": "8",
+    "name": "Trent Boult",
+    "role": "Bowler",
+    "basePrice": 150,
+    "stats": { "matches": 104, "wickets": 197, "economy": 5.0 },
+    "team": "NZ",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Trent_Boult_2015.jpg/800px-Trent_Boult_2015.jpg"
+  },
+  {
+    "id": "9",
+    "name": "Steve Smith",
+    "role": "Batsman",
+    "basePrice": 185,
+    "stats": { "matches": 147, "runs": 5100, "average": 44.0 },
+    "team": "AUS",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Steve_Smith_Batting.jpg/800px-Steve_Smith_Batting.jpg"
+  },
+  {
+    "id": "10",
+    "name": "Shakib Al Hasan",
+    "role": "All-Rounder",
+    "basePrice": 190,
+    "stats": { "matches": 240, "runs": 7300, "wickets": 310, "average": 37.5 },
+    "team": "BAN",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Shakib_Al_Hasan_World_Cup_2019.jpg/800px-Shakib_Al_Hasan_World_Cup_2019.jpg"
+  }
+]
