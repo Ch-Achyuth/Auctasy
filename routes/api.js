@@ -112,9 +112,9 @@ module.exports = function(db) {
         const scoreA_base = evaluateTeamQuality(teamA_rows);
         const scoreB_base = evaluateTeamQuality(teamB_rows);
 
-        // NRR AI calculation constraint: varies by decimal points
-        const finalA_NRR = (scoreA_base / 10) + (Math.random() * 0.009);
-        const finalB_NRR = (scoreB_base / 10) + (Math.random() * 0.009);
+        // NRR AI calculation constraint: divide by 10 again, varies by decimal points
+        const finalA_NRR = ((scoreA_base / 10) / 10) + (Math.random() * 0.009);
+        const finalB_NRR = ((scoreB_base / 10) / 10) + (Math.random() * 0.009);
 
         let winner = finalA_NRR >= finalB_NRR ? match.userA : match.userB;
 
