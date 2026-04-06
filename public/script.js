@@ -24,7 +24,6 @@ function setLoading(btnId, isLoading) {
     }
 }
 
-// ===== HOMEPAGE LOGIC =====
 function showForm(type) {
     document.getElementById('home-options').classList.add('hidden');
     document.getElementById('create-form-container').classList.add('hidden');
@@ -95,7 +94,6 @@ async function joinGroup() {
     }
 }
 
-// BIND ENTER KEYS 
 document.addEventListener("DOMContentLoaded", () => {
     ['create-username', 'create-groupname', 'create-maxplayers'].forEach(id => {
         const el = document.getElementById(id);
@@ -109,14 +107,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if(bidEl) bidEl.addEventListener("keypress", (e) => { if (e.key === "Enter") placeBid(); });
 });
 
-// ===== AUCTION & LOBBY LOGIC =====
-
 let isFinished = false;
 let pollingTimer = null;
 
 async function pollAuctionState() {
     if (isFinished) return;
-
     const username = sessionStorage.getItem('username');
     const groupName = sessionStorage.getItem('groupName');
     if (!username || !groupName) return;
@@ -125,14 +120,12 @@ async function pollAuctionState() {
         const res = await fetch(`/api/auction-state?groupName=${groupName}&username=${username}`);
         const data = await res.json();
 
-        // Handle Errors explicitly
         if (data.status === "INVALID") {
             showToast(data.message, true);
             setTimeout(()=> { window.location.href = "/"; }, 1500);
             return;
         }
 
-        // Handle UI Togglings
         const lobbyView = document.getElementById('lobby-view');
         const auctionView = document.getElementById('auction-view');
         const finishedView = document.getElementById('finished-view');
@@ -143,7 +136,12 @@ async function pollAuctionState() {
 
         if (data.status === "WAITING") {
             lobbyView.classList.remove('hidden');
-            renderLobby(data);
+            document.getElementById('lobby-count').innerText = `${data.currentPlayers} / ${data.maxPlayers} Joined`;
+            document.getElementById('lobby-players').innerHTML = data.playersList.map(p => `<li>✅ ${p}</li>`).join('');
+        } else if (data.status === "WAITING_FOR_MATCHDAY") {
+            lobbyView.classList.remove('hidden');
+            document.getElementById('lobby-count').innerText = `1v1 Match ${data.matchday} Finished!`;
+            document.getElementById('lobby-players').innerHTML = `<li>Waiting for other matches in your group to finish simulating...</li>`;
         } else if (data.status === "ACTIVE") {
             auctionView.classList.remove('hidden');
             renderAuction(data, username);
@@ -155,32 +153,30 @@ async function pollAuctionState() {
         console.error("Polling error", e);
     } finally {
         if(!isFinished) {
-            // Safer than setInterval, fires only when previous returns
             pollingTimer = setTimeout(pollAuctionState, 1000);
         }
     }
-}
-
-function renderLobby(data) {
-    document.getElementById('lobby-count').innerText = `${data.currentPlayers} / ${data.maxPlayers} Joined`;
-    const ul = document.getElementById('lobby-players');
-    ul.innerHTML = "";
-    data.playersList.forEach(p => {
-        ul.innerHTML += `<li>✅ ${p}</li>`;
-    });
 }
 
 function renderAuction(data, username) {
     if (data.userBudget !== undefined) {
         document.getElementById('display-budget').innerText = `Budget: $${data.userBudget} (${username})`;
     }
+    
+    // 1v1 Opponent and Matchday rendering
+    if (data.opponent) {
+        const og = document.getElementById('display-group');
+        if(og) og.innerText = `MD${data.matchday} vs ${data.opponent}`;
+    }
 
-    const { player, currentBid, highestBidder, aiRecommendation, auctionTip, timeLeft } = data;
+    const { player, currentBid, highestBidder, timeLeft, teamSize } = data;
+    
+    // Safety abort if player is undefined mid-poll
+    if(!player) return;
 
     let secondsLeft = Math.ceil(timeLeft / 1000);
     const container = document.getElementById('auction-block');
     
-    // Setup static outer HTML only on first load of a new player to avoid jitter
     if (container.dataset.playerId !== String(player.id)) {
         container.dataset.playerId = player.id;
         container.innerHTML = `
@@ -198,16 +194,13 @@ function renderAuction(data, username) {
                 <h3 id="live-bid-display" style="color:var(--warning)"></h3>
                 <div class="timer-bar"><div id="timer-fill" class="timer-fill"></div></div>
                 <p id="timer-text" style="font-weight: bold; margin-top:5px;"></p>
+                <p style="font-size:0.9rem; color:var(--text); margin-top:5px;">Your Team Capacity: ${teamSize || 0} / 13</p>
             </div>
         `;
     }
 
-    // Dynamic Updates
     document.getElementById('live-bid-display').innerText = `Current Bid: $${currentBid} ${highestBidder ? `(${highestBidder})` : ''}`;
-    document.getElementById('agent-rec').innerText = aiRecommendation || "N/A";
-    document.getElementById('rule-tip').innerText = auctionTip || "N/A";
     
-    // Timer updates
     const fill = document.getElementById('timer-fill');
     if (fill) {
         fill.style.width = `${(secondsLeft/5)*100}%`;
@@ -218,7 +211,6 @@ function renderAuction(data, username) {
     const bidInput = document.getElementById('bid-input');
     const minBid = currentBid === player.basePrice && !highestBidder ? player.basePrice : currentBid + 10;
     
-    // Only alter placeholder if changed to avoid breaking user typing
     if(bidInput.getAttribute('data-last-bid') !== String(currentBid)) {
         bidInput.min = minBid;
         bidInput.placeholder = `Min bid: $${minBid}`;
@@ -227,7 +219,7 @@ function renderAuction(data, username) {
 }
 
 async function placeBid() {
-    clearTimeout(pollingTimer); // stop polling instantly
+    clearTimeout(pollingTimer);
     const username = sessionStorage.getItem('username');
     const groupName = sessionStorage.getItem('groupName');
     const bidInput = document.getElementById('bid-input');
@@ -243,22 +235,24 @@ async function placeBid() {
     
     if(data.success) {
         showToast("Bid Placed! Timer resetting...");
-        bidInput.value = ''; // Only wipe if success
+        bidInput.value = '';
     } else {
         showToast(data.message, true);
     }
     
-    pollAuctionState(); // force immediate UI refresh
+    pollAuctionState(); 
 }
 
 function goToResults() {
     window.location.href = 'results.html';
 }
 
-// ===== RESULTS PAGE =====
+// ===== TOURNAMENT RESULTS PAGE =====
 async function fetchResults() {
     const groupName = sessionStorage.getItem('groupName');
-    const res = await fetch(`/api/results?groupName=${groupName}`);
+    if(!groupName) return;
+    
+    const res = await fetch(`/api/standings?groupName=${groupName}`);
     const data = await res.json();
 
     const display = document.getElementById('results-display');
@@ -268,27 +262,31 @@ async function fetchResults() {
         return;
     }
 
-    const { simulation, users } = data;
+    const { standings } = data;
     
     let html = `
-        <h2 style="color:var(--warning)">🏆 Winner: ${simulation.winner}</h2>
-        <h3>${simulation.userA}: ${simulation.scoreA} pts vs ${simulation.userB}: ${simulation.scoreB} pts</h3>
-        <p><i>Randomly matched 2 teams out of the group.</i></p>
-        <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 2rem; margin-top:2rem;">
+        <h2 style="color:var(--primary); margin-bottom: 1rem;">🏆 Tournament Final Standings</h2>
+        <table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--bg); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <tr style="background: var(--text); color: white;">
+                <th style="padding: 1rem;">Rank</th>
+                <th style="padding: 1rem;">Manager</th>
+                <th style="padding: 1rem;">Points (2/Win)</th>
+                <th style="padding: 1rem;">NRR (Quality)</th>
+            </tr>
     `;
 
-    [simulation.userA, simulation.userB].forEach(u => {
-        html += `<div><h4>${u}'s Team (Budget left: $${users[u].budget})</h4><ul style="text-align:left;">`;
-        if (users[u].team.length === 0) {
-            html += `<li>No players bought</li>`;
-        } else {
-             users[u].team.forEach(p => {
-                 html += `<li>${p.name} (${p.role}) - $${p.boughtFor}</li>`;
-             });
-        }
-        html += `</ul></div>`;
+    standings.forEach((s, index) => {
+        const isWinner = index === 0;
+        html += `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem; font-weight: bold; ${isWinner ? 'color:var(--warning);' : ''}">${index + 1} ${isWinner ? '👑' : ''}</td>
+                <td style="padding: 1rem;">${s.username}</td>
+                <td style="padding: 1rem; font-weight: bold; color:var(--primary);">${s.points}</td>
+                <td style="padding: 1rem;">${parseFloat(s.nrr).toFixed(5)}</td>
+            </tr>
+        `;
     });
 
-    html += `</div>`;
+    html += `</table>`;
     display.innerHTML = html;
 }

@@ -3,24 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auctasy - Results & Simulation</title>
+    <title>Auctasy - League Standings</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body onload="fetchResults()">
     <div class="container" style="max-width: 800px;">
-        <h1>Match Simulation Results</h1>
-        <p>Using Probability.js AI Module</p>
-        
         <div id="results-display">
-            Loading results...
+            <h2>Calculating Leaderboard...</h2>
         </div>
-
-        <button style="margin-top: 1rem;" onclick="window.location.href='/'">Return Home</button>
+        <button onclick="window.location.href='/'" style="margin-top:20px;" class="secondary-btn">Return to Home</button>
     </div>
     <script src="script.js"></script>
-    <script>
-        fetchResults();
-    </script>
 </body>
 </html>
