@@ -32,7 +32,8 @@ async function setupDatabase() {
             auctionStarted BOOLEAN DEFAULT 0,
             currentPlayerIndex INTEGER DEFAULT 0,
             currentBid INTEGER DEFAULT 0,
-            currentHighestBidder TEXT
+            currentHighestBidder TEXT,
+            lastBidTime INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS users (
@@ -53,6 +54,10 @@ async function setupDatabase() {
             FOREIGN KEY(player_id) REFERENCES players(id)
         );
     `);
+
+    try {
+        await db.exec('ALTER TABLE auction_groups ADD COLUMN lastBidTime INTEGER DEFAULT 0');
+    } catch(e) { }
 
     const playerCheck = await db.get('SELECT COUNT(*) as count FROM players');
     if (playerCheck.count === 0) {

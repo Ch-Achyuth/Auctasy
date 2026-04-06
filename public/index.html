@@ -27,7 +27,6 @@
         <!-- Create Form -->
         <div id="create-form-container" class="form-group hidden">
             <h2>Create a Group</h2>
-            <span id="create-error" class="error-msg"></span>
             
             <label>Username</label>
             <input type="text" id="create-username" placeholder="Your name" autocomplete="off">
@@ -38,14 +37,13 @@
             <label>Max Players (Must be even, ≥4)</label>
             <input type="number" id="create-maxplayers" placeholder="4" min="4" step="2">
 
-            <button onclick="createGroup()">Create</button>
+            <button id="btn-create" onclick="createGroup()">Create</button>
             <button class="secondary-btn" onclick="goBack()">Cancel</button>
         </div>
 
         <!-- Join Form -->
         <div id="join-form-container" class="form-group hidden">
             <h2>Join a Group</h2>
-            <span id="join-error" class="error-msg"></span>
 
             <label>Username</label>
             <input type="text" id="join-username" placeholder="Your name" autocomplete="off">
@@ -53,7 +51,7 @@
             <label>Group Name</label>
             <input type="text" id="join-groupname" placeholder="E.g., IPL Legends" autocomplete="off">
 
-            <button onclick="joinGroup()">Join</button>
+            <button id="btn-join" onclick="joinGroup()">Join</button>
             <button class="secondary-btn" onclick="goBack()">Cancel</button>
         </div>
 

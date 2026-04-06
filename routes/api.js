@@ -23,21 +23,15 @@ module.exports = function(db) {
     router.post('/create-group', async (req, res) => {
         const { groupName, username, maxPlayers } = req.body;
 
-        if (!groupName || !username || !maxPlayers) {
-            return res.json({ success: false, message: "Missing fields" });
-        }
+        if (!groupName || !username || !maxPlayers) return res.json({ success: false, message: "Missing fields" });
 
         const exactGroup = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
-        if (exactGroup) {
-            return res.json({ success: false, message: "Group already exists" });
-        }
+        if (exactGroup) return res.json({ success: false, message: "Group already exists" });
 
-        if (!validateGroupSize(maxPlayers)) {
-            return res.json({ success: false, message: "Group size must be an even number and at least 4." });
-        }
+        if (!validateGroupSize(maxPlayers)) return res.json({ success: false, message: "Group size must be an even number and at least 4." });
 
         try {
-            await db.run(`INSERT INTO auction_groups (name, maxPlayers, auctionStarted, currentPlayerIndex, currentBid, currentHighestBidder) VALUES (?, ?, 0, 0, 0, NULL)`, [groupName, parseInt(maxPlayers)]);
+            await db.run(`INSERT INTO auction_groups (name, maxPlayers, auctionStarted, currentPlayerIndex, currentBid, currentHighestBidder, lastBidTime) VALUES (?, ?, 0, 0, 0, NULL, 0)`, [groupName, parseInt(maxPlayers)]);
             await db.run(`INSERT INTO users (username, groupName, budget) VALUES (?, ?, 1000)`, [username, groupName]);
             res.json({ success: true, message: "Group created successfully" });
         } catch(e) {
@@ -51,40 +45,50 @@ module.exports = function(db) {
         const { groupName, username } = req.body;
 
         const group = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
-        if (!group) {
-            return res.json({ success: false, message: "Group does not exist" });
-        }
+        if (!group) return res.json({ success: false, message: "Group does not exist" });
 
         const existingUser = await db.get(`SELECT * FROM users WHERE username = ? AND groupName = ?`, [username, groupName]);
-        if (existingUser) {
-            return res.json({ success: false, message: "Username already taken in this group" });
-        }
+        if (existingUser) return res.json({ success: false, message: "Username already taken in this group" });
 
         const full = await isGroupFull(groupName);
-        if (full) {
-            return res.json({ success: false, message: "Group is full" });
-        }
+        if (full) return res.json({ success: false, message: "Group is full" });
 
         await db.run(`INSERT INTO users (username, groupName, budget) VALUES (?, ?, 1000)`, [username, groupName]);
 
         const fullNow = await isGroupFull(groupName);
         if (fullNow) {
-            await db.run(`UPDATE auction_groups SET auctionStarted = 1 WHERE name = ?`, [groupName]);
+            // Start the timer
+            await db.run(`UPDATE auction_groups SET auctionStarted = 1, lastBidTime = ? WHERE name = ?`, [Date.now(), groupName]);
         }
 
         res.json({ success: true, message: "Joined successfully" });
     });
 
+    // Sub-routine: Internal trigger to sell a player
+    async function internalSellPlayer(groupName) {
+        const group = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
+        if (!group) return;
+        const totalPlayers = await db.get('SELECT COUNT(*) as count FROM players');
+        if (group.currentPlayerIndex >= totalPlayers.count) return;
+        
+        const player = await db.get(`SELECT * FROM players ORDER BY id ASC LIMIT 1 OFFSET ?`, [group.currentPlayerIndex]);
+
+        if (group.currentHighestBidder) {
+            await db.run(`UPDATE users SET budget = budget - ? WHERE username = ? AND groupName = ?`, [group.currentBid, group.currentHighestBidder, groupName]);
+            await db.run(`INSERT INTO user_teams (username, groupName, player_id, boughtFor) VALUES (?, ?, ?, ?)`, [group.currentHighestBidder, groupName, player.id, group.currentBid]);
+        }
+
+        // Move to next player and restart internal timer
+        await db.run(`UPDATE auction_groups SET currentPlayerIndex = currentPlayerIndex + 1, currentBid = 0, currentHighestBidder = NULL, lastBidTime = ? WHERE name = ?`, [Date.now(), groupName]);
+    }
+
     // 3. Get current state (Lobby or Active Auction)
     router.get('/auction-state', async (req, res) => {
         const { groupName, username } = req.query;
-        const group = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
+        let group = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
 
-        if (!group) {
-            return res.json({ status: "INVALID", message: "Group not found" });
-        }
+        if (!group) return res.json({ status: "INVALID", message: "Group not found" });
 
-        // Lobby State
         if (!group.auctionStarted) {
             const playersList = await db.all(`SELECT username FROM users WHERE groupName = ?`, [groupName]);
             return res.json({
@@ -95,17 +99,28 @@ module.exports = function(db) {
             });
         }
 
-        // Total players check
         const totalPlayers = await db.get('SELECT COUNT(*) as count FROM players');
 
         if (group.currentPlayerIndex >= totalPlayers.count) {
             return res.json({ status: "FINISHED" });
         }
 
-        const player = await db.get(`SELECT * FROM players ORDER BY id ASC LIMIT 1 OFFSET ?`, [group.currentPlayerIndex]);
-        if(player) {
-            player.stats = JSON.parse(player.stats_json);
+        // --- THE 5-SECOND AUTO-SELL CHECK ---
+        const now = Date.now();
+        const elapsedOffset = now - group.lastBidTime;
+        
+        if (elapsedOffset >= 5000) { // 5 seconds timer!
+            await internalSellPlayer(groupName);
+            // Re-fetch updated group after selling
+            group = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
+            
+            if (group.currentPlayerIndex >= totalPlayers.count) {
+                return res.json({ status: "FINISHED" });
+            }
         }
+
+        const player = await db.get(`SELECT * FROM players ORDER BY id ASC LIMIT 1 OFFSET ?`, [group.currentPlayerIndex]);
+        if(player) player.stats = JSON.parse(player.stats_json);
 
         let aiRecommendation = "";
         let auctionTip = "";
@@ -129,7 +144,8 @@ module.exports = function(db) {
             highestBidder: group.currentHighestBidder,
             userBudget: userBudget,
             aiRecommendation,
-            auctionTip
+            auctionTip,
+            timeLeft: Math.max(0, 5000 - (Date.now() - group.lastBidTime))
         });
     });
 
@@ -151,30 +167,16 @@ module.exports = function(db) {
              return res.json({ success: false, message: `Bid must be at least $${requiredBid}` });
         }
 
-        await db.run(`UPDATE auction_groups SET currentBid = ?, currentHighestBidder = ? WHERE name = ?`, [bidAmount, username, groupName]);
-        res.json({ success: true, message: "Bid placed!" });
+        // On successful bid, reset the timer!
+        await db.run(`UPDATE auction_groups SET currentBid = ?, currentHighestBidder = ?, lastBidTime = ? WHERE name = ?`, [bidAmount, username, Date.now(), groupName]);
+        res.json({ success: true, message: "Bid placed successfully!" });
     });
 
-    // 5. Sell player 
+    // 5. Sell player (Left intact as a manual fallback / for testing)
     router.post('/sell', async (req, res) => {
         const { groupName } = req.body;
-        const group = await db.get(`SELECT * FROM auction_groups WHERE name = ?`, [groupName]);
-
-        if (!group) return res.json({ success: false, message: "Group not found" });
-        const totalPlayers = await db.get('SELECT COUNT(*) as count FROM players');
-
-        if (group.currentPlayerIndex >= totalPlayers.count) return res.json({ success: false, message: "No players left" });
-        
-        const player = await db.get(`SELECT * FROM players ORDER BY id ASC LIMIT 1 OFFSET ?`, [group.currentPlayerIndex]);
-
-        if (group.currentHighestBidder) {
-            await db.run(`UPDATE users SET budget = budget - ? WHERE username = ? AND groupName = ?`, [group.currentBid, group.currentHighestBidder, groupName]);
-            await db.run(`INSERT INTO user_teams (username, groupName, player_id, boughtFor) VALUES (?, ?, ?, ?)`, [group.currentHighestBidder, groupName, player.id, group.currentBid]);
-        }
-
-        await db.run(`UPDATE auction_groups SET currentPlayerIndex = currentPlayerIndex + 1, currentBid = 0, currentHighestBidder = NULL WHERE name = ?`, [groupName]);
-
-        res.json({ success: true, message: "Player sold" });
+        await internalSellPlayer(groupName);
+        res.json({ success: true, message: "Player sold manually" });
     });
 
     // 6. Get Match Simulation
@@ -185,11 +187,8 @@ module.exports = function(db) {
         if (!group) return res.json({ success: false, message: "Group not found" });
 
         const usernamesRaw = await db.all(`SELECT username, budget FROM users WHERE groupName = ?`, [groupName]);
-        if (usernamesRaw.length < 2) {
-             return res.json({ success: false, message: "Need at least 2 users" });
-        }
+        if (usernamesRaw.length < 2) return res.json({ success: false, message: "Need at least 2 users" });
 
-        // Shuffle
         let shuffled = [...usernamesRaw];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -211,10 +210,7 @@ module.exports = function(db) {
 
         let fullUsersData = {};
         for (let u of usernamesRaw) {
-             fullUsersData[u.username] = {
-                 budget: u.budget,
-                 team: await getTeam(u)
-             };
+             fullUsersData[u.username] = { budget: u.budget, team: await getTeam(u) };
         }
 
         res.json({
