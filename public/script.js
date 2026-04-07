@@ -181,7 +181,6 @@ function renderAuction(data, username) {
         container.dataset.playerId = player.id;
         container.innerHTML = `
             <div class="player-card" style="animation: fadeIn 0.3s ease;">
-                <img src="${player.imageUrl}" alt="${player.name}">
                 <h2>${player.name}</h2>
                 <p>${player.role} | Base: $${player.basePrice} | True Value: $${player.trueValue}</p>
                 <div class="stats-grid">
@@ -203,8 +202,8 @@ function renderAuction(data, username) {
     
     const fill = document.getElementById('timer-fill');
     if (fill) {
-        fill.style.width = `${(secondsLeft/5)*100}%`;
-        fill.style.background = secondsLeft <= 2 ? 'var(--danger)' : 'var(--primary)';
+        fill.style.width = `${(secondsLeft/15)*100}%`;
+        fill.style.background = secondsLeft <= 5 ? 'var(--danger)' : 'var(--primary)';
         document.getElementById('timer-text').innerText = `⏳ ${secondsLeft}s remaining`;
     }
 

@@ -200,7 +200,7 @@ module.exports = function(db) {
         }
 
         const elapsedOffset = Date.now() - match.lastBidTime;
-        if (elapsedOffset >= 5000) {
+        if (elapsedOffset >= 15000) {
             // CRITICAL FIX: Atomic Lock! Only one polling request can win the right to sell the player
             const result = await db.run(`UPDATE matches SET lastBidTime = ? WHERE id = ? AND lastBidTime = ?`, [Date.now() + 10000, match.id, match.lastBidTime]);
             if (result.changes > 0) {
@@ -234,7 +234,7 @@ module.exports = function(db) {
             teamSize: teamRows.length,
             aiRecommendation: "Bid wisely!",
             auctionTip: "13 Limit Constraint",
-            timeLeft: Math.max(0, 5000 - (Date.now() - activeMatch.lastBidTime))
+            timeLeft: Math.max(0, 15000 - (Date.now() - activeMatch.lastBidTime))
         });
     });
 
